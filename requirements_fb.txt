@@ -1,0 +1,14 @@
+# Speed-to-Lead Facebook Messenger Bot — dependencies
+# Install with: pip install -r requirements_fb.txt
+# Intentionally separate from requirements.txt (DocMind) and requirements_line.txt (LINE bot)
+# so each service can deploy independently with no conflicts.
+
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-dotenv>=1.0.0
+httpx>=0.27.0
+# Note: line-bot-sdk is NOT needed — Meta API calls use plain httpx HTTP requests.
+
+# Uncomment when adding Google Sheets integration (see log_to_sheets in fb_lead_bot.py):
+# gspread>=6.0.0
+# google-auth>=2.29.0

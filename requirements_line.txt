@@ -1,0 +1,14 @@
+# Speed-to-Lead LINE Bot — dependencies
+# Install with: pip install -r requirements_line.txt
+# These are intentionally separate from requirements.txt (DocMind) to avoid
+# dependency conflicts when the two services deploy to separate containers.
+
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+line-bot-sdk>=3.22.0
+python-dotenv>=1.0.0
+httpx>=0.27.0
+
+# Uncomment when adding Google Sheets integration (see log_to_sheets in line_lead_bot.py):
+# gspread>=6.0.0
+# google-auth>=2.29.0

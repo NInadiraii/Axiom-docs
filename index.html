@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DocMind — Ask Your Documents</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <style>
+    /* ── CSS Variables ─────────────────────────────────── */
+    :root {
+      --bg:        #0e0f11;
+      --surface:   #16171b;
+      --surface-2: #1e2025;
+      --border:    #2a2c32;
+      --text:      #e4e4e7;
+      --text-dim:  #71717a;
+      --accent:    #a78bfa;
+      --accent-2:  #7c3aed;
+      --danger:    #f87171;
+      --success:   #34d399;
+      --font-serif: 'Instrument Serif', serif;
+      --font-mono:  'DM Mono', monospace;
+      --radius:    12px;
+    }
+
+    /* ── Reset ─────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { font-size: 15px; }
+    body {
+      font-family: var(--font-mono);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .logo {
+      font-family: var(--font-serif);
+      font-size: 1.65rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent); }
+    .usage-pill {
+      display: flex;
+      gap: 16px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+    .usage-pill b { color: var(--text); font-weight: 500; }
+    .tier-badge {
+      background: var(--accent-2);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ── Main layout ───────────────────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar (upload) ──────────────────────────────── */
+    .sidebar {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px;
+      gap: 20px;
+      overflow-y: auto;
+    }
+    .sidebar h2 {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: var(--text-dim);
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 32px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s ease;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(167, 139, 250, .05);
+    }
+    .drop-zone input { display: none; }
+    .drop-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      opacity: .5;
+    }
+    .drop-text { font-size: .78rem; color: var(--text-dim); line-height: 1.6; }
+    .drop-text strong { color: var(--accent); }
+
+    /* File list */
+    .file-list { display: flex; flex-direction: column; gap: 8px; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border-radius: 8px;
+      font-size: .78rem;
+      animation: slideIn .3s ease;
+    }
+    .file-icon { color: var(--accent); font-size: 1.1rem; flex-shrink: 0; }
+    .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-status { font-size: .65rem; color: var(--success); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Upgrade CTA */
+    .upgrade-cta {
+      margin-top: auto;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent-2) 0%, #5b21b6 100%);
+      border-radius: var(--radius);
+      text-align: center;
+      font-size: .75rem;
+      line-height: 1.5;
+      cursor: pointer;
+      transition: opacity .2s;
+      display: none;
+    }
+    .upgrade-cta:hover { opacity: .85; }
+    .upgrade-cta strong { display: block; font-size: .85rem; margin-bottom: 4px; }
+
+    /* ── Chat panel ────────────────────────────────────── */
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Messages */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .messages::-webkit-scrollbar { width: 6px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .msg {
+      max-width: 72%;
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      line-height: 1.7;
+      animation: fadeUp .3s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--accent-2);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--surface-2);
+      border-bottom-left-radius: 4px;
+    }
+    .msg.bot .source-tag {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 8px;
+      background: var(--surface);
+      border-radius: 4px;
+      font-size: .65rem;
+      color: var(--accent);
+    }
+    .msg.system {
+      align-self: center;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: .75rem;
+      max-width: 90%;
+      text-align: center;
+      padding: 8px;
+    }
+
+    /* Typing indicator */
+    .typing { display: none; align-self: flex-start; padding: 14px 18px; }
+    .typing.visible { display: flex; gap: 5px; align-items: center; }
+    .typing span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+      animation: bounce .6s infinite alternate;
+    }
+    .typing span:nth-child(2) { animation-delay: .15s; }
+    .typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes bounce { to { opacity: .3; transform: translateY(-4px); } }
+
+    /* Input bar */
+    .input-bar {
+      padding: 16px 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .input-bar input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .input-bar input:focus { border-color: var(--accent); }
+    .input-bar input::placeholder { color: var(--text-dim); }
+    .input-bar button {
+      background: var(--accent-2);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0 24px;
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .input-bar button:hover { background: var(--accent); }
+    .input-bar button:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── Error toast ───────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--danger);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: .78rem;
+      font-family: var(--font-mono);
+      opacity: 0;
+      transition: all .35s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Responsive ────────────────────────────────────── */
+    @media (max-width: 720px) {
+      main { grid-template-columns: 1fr; }
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        max-height: 35vh;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Header ──────────────────────────────────────── -->
+  <header>
+    <div class="logo">Doc<span>Mind</span></div>
+    <div class="usage-pill">
+      <span class="tier-badge" id="tierBadge">STARTER</span>
+      <span>Docs: <b id="docCount">0/2</b></span>
+      <span>Queries: <b id="queryCount">0/50</b></span>
+    </div>
+  </header>
+
+  <!-- ─── Main ────────────────────────────────────────── -->
+  <main>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>Your Documents</h2>
+
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".pdf" />
+        <div class="drop-icon">⬆</div>
+        <div class="drop-text">
+          Drop a <strong>PDF</strong> here<br />or click to browse
+        </div>
+      </div>
+
+      <div class="file-list" id="fileList"></div>
+
+      <div class="upgrade-cta" id="upgradeCta" onclick="doUpgrade()">
+        <strong>Upgrade to Pro</strong>
+        50 docs · Unlimited queries
+      </div>
+    </aside>
+
+    <!-- Chat -->
+    <section class="chat-panel">
+      <div class="messages" id="messages">
+        <div class="msg system">
+          Upload a PDF, then ask anything about it. Your documents stay private.
+        </div>
+      </div>
+
+      <div class="typing" id="typing"><span></span><span></span><span></span></div>
+
+      <div class="input-bar">
+        <input id="queryInput" type="text" placeholder="Ask a question about your documents…"
+               autocomplete="off" />
+        <button id="sendBtn" onclick="sendQuery()">Ask</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ─── Script ──────────────────────────────────────── -->
+  <script>
+    const $ = (s) => document.querySelector(s);
+
+    // ── Toast helper ──────────────────────────────────
+    function showToast(msg) {
+      const t = $("#toast");
+      t.textContent = msg;
+      t.classList.add("visible");
+      setTimeout(() => t.classList.remove("visible"), 3500);
+    }
+
+    // ── Usage UI update ───────────────────────────────
+    function updateUsage(u) {
+      if (!u) return;
+      $("#tierBadge").textContent = u.tier.toUpperCase();
+      $("#docCount").textContent = `${u.documents_used}/${u.documents_max}`;
+      $("#queryCount").textContent =
+        u.queries_max === "unlimited"
+          ? `${u.queries_used}/∞`
+          : `${u.queries_used}/${u.queries_max}`;
+
+      // Show upgrade CTA if on Starter and nearing limits
+      const cta = $("#upgradeCta");
+      cta.style.display =
+        u.tier_key === "tier_1" &&
+        (u.documents_used >= u.documents_max * 0.5 ||
+         u.queries_used >= u.queries_max * 0.5)
+          ? "block"
+          : "none";
+    }
+
+    // ── Fetch initial usage ───────────────────────────
+    fetch("/api/usage").then(r => r.json()).then(updateUsage);
+
+    // ── Drop zone ─────────────────────────────────────
+    const dropZone = $("#dropZone");
+    const fileInput = $("#fileInput");
+
+    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("drag-over");
+    });
+    dropZone.addEventListener("dragleave", () =>
+      dropZone.classList.remove("drag-over")
+    );
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+      if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length) uploadFile(fileInput.files[0]);
+    });
+
+    // ── Upload ────────────────────────────────────────
+    async function uploadFile(file) {
+      if (!file.name.toLowerCase().endsWith(".pdf")) {
+        showToast("Only PDF files are supported.");
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append("file", file);
+
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json();
+
+        if (!data.ok) {
+          showToast(data.error);
+          return;
+        }
+
+        // Add to file list
+        const el = document.createElement("div");
+        el.className = "file-item";
+        el.innerHTML = `
+          <span class="file-icon">📄</span>
+          <span class="file-name">${data.filename}</span>
+          <span class="file-status">✓ indexed</span>
+        `;
+        $("#fileList").prepend(el);
+
+        updateUsage(data.usage);
+        addMessage("system", `✓ "${data.filename}" uploaded and indexed.`);
+      } catch (err) {
+        showToast("Upload failed. Please try again.");
+      }
+    }
+
+    // ── Chat ──────────────────────────────────────────
+    function addMessage(role, text, sources) {
+      const el = document.createElement("div");
+      el.className = `msg ${role}`;
+
+      let html = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                     .replace(/\n/g, "<br />");
+
+      if (sources && sources.length) {
+        const unique = [...new Set(sources.map(s => s.file).filter(Boolean))];
+        html += "<br />" + unique.map(f => `<span class="source-tag">📎 ${f}</span>`).join(" ");
+      }
+
+      el.innerHTML = html;
+      $("#messages").appendChild(el);
+      $("#messages").scrollTop = $("#messages").scrollHeight;
+    }
+
+    async function sendQuery() {
+      const input = $("#queryInput");
+      const q = input.value.trim();
+      if (!q) return;
+
+      addMessage("user", q);
+      input.value = "";
+      $("#sendBtn").disabled = true;
+      $("#typing").classList.add("visible");
+
+      try {
+        const res = await fetch("/api/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q }),
+        });
+        const data = await res.json();
+
+        $("#typing").classList.remove("visible");
+        $("#sendBtn").disabled = false;
+
+        if (!data.ok) {
+          showToast(data.error);
+          return;
+        }
+
+        addMessage("bot", data.answer, data.sources);
+        updateUsage(data.usage);
+      } catch (err) {
+        $("#typing").classList.remove("visible");
+        $("#sendBtn").disabled = false;
+        showToast("Something went wrong. Try again.");
+      }
+    }
+
+    // Enter key
+    $("#queryInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendQuery();
+    });
+
+    // ── Upgrade ───────────────────────────────────────
+    async function doUpgrade() {
+      const res = await fetch("/api/upgrade", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        updateUsage(data.usage);
+        addMessage("system", "🎉 Upgraded to Pro! 50 docs and unlimited queries.");
+      }
+    }
+  </script>
+</body>
+</html>
